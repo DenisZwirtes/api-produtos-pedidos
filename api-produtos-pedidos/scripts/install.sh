@@ -112,8 +112,12 @@ if [[ "$USE_DOCKER" -eq 0 && "$AUTO_INSTALL" -eq 1 ]]; then
 
   echo "Criando banco, usuário e permissões (se não existirem)..."
   MYSQL_PWD="" mysql -uroot -e "CREATE DATABASE IF NOT EXISTS api_produtos_pedidos;" || true
+  MYSQL_PWD="" mysql -uroot -e "CREATE DATABASE IF NOT EXISTS api_produtos_pedidos_test;" || true
   MYSQL_PWD="" mysql -uroot -e "CREATE USER IF NOT EXISTS 'laravel'@'localhost' IDENTIFIED BY 'secret';" || true
-  MYSQL_PWD="" mysql -uroot -e "GRANT ALL PRIVILEGES ON api_produtos_pedidos.* TO 'laravel'@'localhost'; FLUSH PRIVILEGES;" || true
+  MYSQL_PWD="" mysql -uroot -e "GRANT ALL PRIVILEGES ON api_produtos_pedidos.* TO 'laravel'@'localhost';" || true
+  MYSQL_PWD="" mysql -uroot -e "GRANT ALL PRIVILEGES ON api_produtos_pedidos_test.* TO 'laravel'@'localhost';" || true
+  MYSQL_PWD="" mysql -uroot -e "FLUSH PRIVILEGES;" || true
+  echo "Banco de testes criado: api_produtos_pedidos_test"
 
   echo "MySQL e Redis prontos."
 fi
@@ -137,6 +141,10 @@ if [[ "$USE_DOCKER" -eq 1 ]]; then
     echo -n "."; sleep 1;
   done
   echo "\nMySQL pronto."
+
+  print_header "3.0.1) Criando banco de dados de testes"
+  $DOCKER_COMPOSE exec -T db mysql -uroot -proot -e "CREATE DATABASE IF NOT EXISTS api_produtos_pedidos_test; GRANT ALL PRIVILEGES ON api_produtos_pedidos_test.* TO 'laravel'@'%'; FLUSH PRIVILEGES;" || true
+  echo "Banco de testes criado: api_produtos_pedidos_test"
 
   print_header "3.1) Ajustando .env para Docker"
   sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
@@ -253,9 +261,10 @@ else
 fi
 echo "- Swagger UI: http://localhost:8000/api/documentation"
 echo "- Banco de dados: $DB_LINE"
+echo "- Banco de testes: api_produtos_pedidos_test (isolado para testes)"
 echo "- Redis: 127.0.0.1:6379"
 echo "- Usuário de teste (seeder): tester@example.com / password123"
-echo "- Testes: php artisan test"
+echo "- Testes: php artisan test (usa banco de testes automaticamente)"
 
 exit 0
 

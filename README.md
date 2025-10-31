@@ -75,7 +75,7 @@ cd api-produtos-pedidos && bash scripts/install.sh --yes
 - MySQL (host): `127.0.0.1:3307` | db `api_produtos_pedidos` | user `laravel` | pass `secret`
 - Redis (host): `127.0.0.1:6379`
 
-Observação (dentro do container `app`): `DB_HOST=db` e `DB_PORT=3306`.
+**Nota:** Dentro do container `app`, use `DB_HOST=db` e `DB_PORT=3306`.
 
 ## Credenciais de teste
 - Email: `tester@example.com`
@@ -122,10 +122,12 @@ curl http://localhost:8000/api/pedidos -H "Authorization: Bearer SEU_TOKEN"
 Paginação (ex.: produtos): `?page=1&per_page=15`.
 
 ## Testes automatizados
-- Executar testes (no container ou host conforme ambiente):
+- Executar testes (usa banco de testes isolado `api_produtos_pedidos_test`):
 ```bash
 php artisan test
 ```
+
+**Importante:** Os testes usam um banco de dados separado (`api_produtos_pedidos_test`), então não afetam seus dados de desenvolvimento. O script de instalação cria este banco automaticamente.
 
 ## Documentação (Swagger)
 - UI: `http://localhost:8000/api/documentation`

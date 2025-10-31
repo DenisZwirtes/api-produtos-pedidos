@@ -131,7 +131,7 @@
                     >
                       <option value="">Selecione um produto</option>
                       <option 
-                        v-for="produto in produtos" 
+                        v-for="produto in getAvailableProducts(index)" 
                         :key="produto.id" 
                         :value="produto.id"
                       >
@@ -336,6 +336,15 @@ export default {
       })
     }
 
+    const getAvailableProducts = (currentIndex) => {
+      const selectedIds = new Set(
+        form.value.items
+          .map((it, idx) => (idx === currentIndex ? null : it.produto_id))
+          .filter(Boolean)
+      )
+      return produtos.value.filter(p => !selectedIds.has(p.id))
+    }
+
     onMounted(() => {
       loadPedidos()
       loadProdutos()
@@ -361,7 +370,8 @@ export default {
       getTotalPedido,
       getStatusClass,
       getStatusLabel,
-      formatDate
+      formatDate,
+      getAvailableProducts
     }
   }
 }

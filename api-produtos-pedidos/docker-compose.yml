@@ -69,11 +69,16 @@ services:
     image: node:18-alpine
     container_name: api_produtos_pedidos_frontend
     working_dir: /app
+    environment:
+      # Força polling para detectar mudanças em volumes Docker (Linux)
+      CHOKIDAR_USEPOLLING: "true"
+      CHOKIDAR_INTERVAL: "50"
     command: sh -lc "npm install --silent && npm run dev -- --host 0.0.0.0"
     ports:
       - "3000:3000"
     volumes:
-      - ../frontend-vue:/app
+      # Usa cached para melhorar performance de detecção de mudanças em volumes montados
+      - ../frontend-vue:/app:cached
     depends_on:
       - app
 
