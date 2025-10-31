@@ -161,19 +161,35 @@ fi
 
 # 4) Composer install
 print_header "4) Instalando dependências (composer install)"
-composer install --no-interaction --prefer-dist
+if [[ "$USE_DOCKER" -eq 1 ]]; then
+  $DOCKER_COMPOSE exec -T app composer install --no-interaction --prefer-dist || true
+else
+  composer install --no-interaction --prefer-dist
+fi
 
 # 5) Key + Migrations + Seed
 print_header "5) Configurando aplicação (API Laravel)"
 php -r 'file_exists(".env") || copy(".env.example", ".env");'
 
 if [[ "$USE_DOCKER" -eq 1 ]]; then
+  # Criar diretórios do storage e ajustar permissões (necessário para Laravel)
+  print_header "5.0) Preparando diretórios do storage e permissões"
+  # mkdir -p é idempotente: não causa erro se diretórios já existirem
+  $DOCKER_COMPOSE exec -T app mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/framework/testing storage/logs storage/api-docs bootstrap/cache || true
+  $DOCKER_COMPOSE exec -T app chmod -R 775 storage bootstrap/cache 2>/dev/null || true
+  $DOCKER_COMPOSE exec -T app chown -R www-data:www-data storage bootstrap/cache 2>/dev/null || true
+  
   $DOCKER_COMPOSE exec -T app php artisan key:generate --ansi || true
   $DOCKER_COMPOSE exec -T app php artisan migrate --force || true
   $DOCKER_COMPOSE exec -T app php artisan db:seed --class=DefaultUserSeeder || true
   # Swagger docs (no container)
   $DOCKER_COMPOSE exec -T app php artisan l5-swagger:generate || true
 else
+  # Criar diretórios do storage localmente (se não existirem)
+  # mkdir -p é idempotente: não causa erro se diretórios já existirem
+  mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/framework/testing storage/logs storage/api-docs bootstrap/cache || true
+  chmod -R 775 storage bootstrap/cache 2>/dev/null || true
+  
   php artisan key:generate --ansi || true
   php artisan migrate --force
   php artisan db:seed --class=DefaultUserSeeder || true
@@ -214,7 +230,12 @@ fi
 # 5.3) Verificar API do container
 if [[ "$USE_DOCKER" -eq 1 ]]; then
   print_header "5.3) Verificando API (http://localhost:8000)"
-  curl -sSf "http://localhost:8000" >/dev/null || echo "Aviso: API respondeu com erro; verifique logs com: docker compose logs app"
+  # Testa endpoint de API real (não a raiz que pode retornar 404)
+  if curl -sSf "http://localhost:8000/api/produtos" >/dev/null; then
+    echo "✓ API respondendo corretamente"
+  else
+    echo "Aviso: API respondeu com erro; verifique logs com: docker compose logs app"
+  fi
   echo "Swagger UI: http://localhost:8000/api/documentation"
 fi
 
