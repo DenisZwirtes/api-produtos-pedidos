@@ -11,7 +11,6 @@ Projeto full stack com API REST em Laravel e frontend em Vue.js, totalmente dock
 - Credenciais de teste
 - Como testar no navegador
 - Endpoints principais
-- Padrões e decisões técnicas
 - Testes automatizados
 - Git e publicação no GitHub
 
