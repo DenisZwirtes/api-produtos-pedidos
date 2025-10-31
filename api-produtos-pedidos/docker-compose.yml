@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: api_produtos_pedidos_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: api_produtos_pedidos
+      MYSQL_USER: laravel
+      MYSQL_PASSWORD: secret
+    ports:
+      - "3307:3306"
+    command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-proot"]
+      interval: 5s
+      retries: 20
+      start_period: 20s
+      timeout: 2s
+    volumes:
+      - db_data:/var/lib/mysql
+  redis:
+    image: redis:7-alpine
+    container_name: api_produtos_pedidos_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--appendonly", "yes"]
+
+  app:
+    build: .
+    container_name: api_produtos_pedidos_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      APP_ENV: local
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: api_produtos_pedidos
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
+      CACHE_DRIVER: redis
+      REDIS_HOST: redis
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - db
+      - redis
+
+  phpmyadmin:
+    image: phpmyadmin:5
+    container_name: api_produtos_pedidos_pma
+    restart: unless-stopped
+    environment:
+      PMA_HOST: db
+      PMA_USER: laravel
+      PMA_PASSWORD: secret
+    ports:
+      - "8081:80"
+    depends_on:
+      - db
+
+  frontend:
+    image: node:18-alpine
+    container_name: api_produtos_pedidos_frontend
+    working_dir: /app
+    command: sh -lc "npm install --silent && npm run dev -- --host 0.0.0.0"
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../frontend-vue:/app
+    depends_on:
+      - app
+
+volumes:
+  db_data:
+    driver: local
+
+
