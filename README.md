@@ -71,6 +71,7 @@ cd api-produtos-pedidos && bash scripts/install.sh --yes
 ## Serviços e URLs
 - API (Laravel): `http://localhost:8000`
 - Frontend (Vue): `http://localhost:3000`
+- Swagger UI: `http://localhost:8000/api/documentation`
 - MySQL (host): `127.0.0.1:3307` | db `api_produtos_pedidos` | user `laravel` | pass `secret`
 - Redis (host): `127.0.0.1:6379`
 
@@ -124,6 +125,13 @@ Paginação (ex.: produtos): `?page=1&per_page=15`.
 - Executar testes (no container ou host conforme ambiente):
 ```bash
 php artisan test
+```
+
+## Documentação (Swagger)
+- UI: `http://localhost:8000/api/documentation`
+- Gerar manualmente (se necessário):
+```bash
+php artisan l5-swagger:generate
 ```
 
 ## Git e publicação no GitHub

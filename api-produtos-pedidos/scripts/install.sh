@@ -8,7 +8,7 @@ cd "$PROJECT_ROOT_DIR"
 USE_DOCKER=1
 START_APP=1
 NON_INTERACTIVE=0
-AUTO_INSTALL=0
+AUTO_INSTALL=0 # Novo: instala dependências no modo --no-docker (Ubuntu/Debian)
 
 print_header() {
   echo "\n========================================"
@@ -118,7 +118,7 @@ if [[ "$USE_DOCKER" -eq 0 && "$AUTO_INSTALL" -eq 1 ]]; then
   echo "MySQL e Redis prontos."
 fi
 
-# 2) Copiar .env (se necessário)
+# 2) Preparando .env
 print_header "2) Preparando .env"
 if [[ ! -f .env ]]; then
   cp .env.example .env || true
@@ -127,19 +127,17 @@ else
   echo ".env já existe, mantendo como está"
 fi
 
-# 3) Subir serviços Docker (db/redis e app) OU preparar ambiente local
+# 3) Subir serviços Docker (db/redis e app) OU preparar local
 if [[ "$USE_DOCKER" -eq 1 ]]; then
   print_header "3) Subindo serviços Docker (db, redis, app, frontend)"
   $DOCKER_COMPOSE up -d db redis app frontend
 
-  # Esperar MySQL do container ficar pronto
   print_header "3.0) Aguardando MySQL ficar pronto (container db)"
   until $DOCKER_COMPOSE exec -T db mysqladmin ping -h"127.0.0.1" -uroot -proot --silent >/dev/null 2>&1; do
     echo -n "."; sleep 1;
   done
   echo "\nMySQL pronto."
 
-  # Ajustar .env para containers
   print_header "3.1) Ajustando .env para Docker"
   sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
   sed -i 's/^DB_HOST=.*/DB_HOST=db/' .env
@@ -151,7 +149,6 @@ if [[ "$USE_DOCKER" -eq 1 ]]; then
   sed -i 's/^REDIS_HOST=.*/REDIS_HOST=redis/' .env || echo 'REDIS_HOST=redis' >> .env
 else
   print_header "3) Ambiente local (sem Docker)"
-  # Ajustar .env para serviços locais
   sed -i 's/^DB_CONNECTION=.*/DB_CONNECTION=mysql/' .env
   sed -i 's/^DB_HOST=.*/DB_HOST=127.0.0.1/' .env
   sed -i 's/^DB_PORT=.*/DB_PORT=3307/' .env
@@ -162,7 +159,7 @@ else
   sed -i 's/^REDIS_HOST=.*/REDIS_HOST=127.0.0.1/' .env || echo 'REDIS_HOST=127.0.0.1' >> .env
 fi
 
-# 4) Instalar dependências PHP
+# 4) Composer install
 print_header "4) Instalando dependências (composer install)"
 composer install --no-interaction --prefer-dist
 
@@ -174,10 +171,14 @@ if [[ "$USE_DOCKER" -eq 1 ]]; then
   $DOCKER_COMPOSE exec -T app php artisan key:generate --ansi || true
   $DOCKER_COMPOSE exec -T app php artisan migrate --force || true
   $DOCKER_COMPOSE exec -T app php artisan db:seed --class=DefaultUserSeeder || true
+  # Swagger docs (no container)
+  $DOCKER_COMPOSE exec -T app php artisan l5-swagger:generate || true
 else
   php artisan key:generate --ansi || true
   php artisan migrate --force
   php artisan db:seed --class=DefaultUserSeeder || true
+  # Swagger docs local
+  php artisan l5-swagger:generate || true
 fi
 
 # 5.1) Iniciar API local quando sem Docker
@@ -214,6 +215,7 @@ fi
 if [[ "$USE_DOCKER" -eq 1 ]]; then
   print_header "5.3) Verificando API (http://localhost:8000)"
   curl -sSf "http://localhost:8000" >/dev/null || echo "Aviso: API respondeu com erro; verifique logs com: docker compose logs app"
+  echo "Swagger UI: http://localhost:8000/api/documentation"
 fi
 
 # 6) Resumo e próximos passos
@@ -228,6 +230,7 @@ else
   echo "- API (local): $APP_URL"
   echo "- Frontend (local via Vite): http://localhost:3000"
 fi
+echo "- Swagger UI: http://localhost:8000/api/documentation"
 echo "- Banco de dados: $DB_LINE"
 echo "- Redis: 127.0.0.1:6379"
 echo "- Usuário de teste (seeder): tester@example.com / password123"

@@ -12,6 +12,16 @@ use App\Exceptions\PedidoException;
 
 class PedidoController extends Controller
 {
+    /**
+     * @OA\Get(
+     *   path="/api/pedidos",
+     *   tags={"Pedidos"},
+     *   summary="Lista pedidos do usuário autenticado",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Parameter(name="per_page", in="query", @OA\Schema(type="integer")),
+     *   @OA\Response(response=200, description="OK")
+     * )
+     */
 	public function index(Request $request)
 	{
 		$perPage = (int) $request->get('per_page', 15);
@@ -24,6 +34,17 @@ class PedidoController extends Controller
 		);
 	}
 
+    /**
+     * @OA\Get(
+     *   path="/api/pedidos/{id}",
+     *   tags={"Pedidos"},
+     *   summary="Exibe um pedido do usuário",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *   @OA\Response(response=200, description="OK"),
+     *   @OA\Response(response=403, description="Acesso negado")
+     * )
+     */
 	public function show(Request $request, Pedido $pedido)
 	{
 		$pedido = $this->findAuthorized($request, $pedido->id);
@@ -32,6 +53,26 @@ class PedidoController extends Controller
 		return new PedidoResource($pedido);
 	}
 
+    /**
+     * @OA\Post(
+     *   path="/api/pedidos",
+     *   tags={"Pedidos"},
+     *   summary="Cria pedido (autenticado)",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\JsonContent(required={"items"},
+     *       @OA\Property(property="items", type="array",
+     *         @OA\Items(type="object",
+     *           @OA\Property(property="produto_id", type="integer"),
+     *           @OA\Property(property="quantidade", type="integer")
+     *         )
+     *       )
+     *     )
+     *   ),
+     *   @OA\Response(response=201, description="Criado")
+     * )
+     */
 	public function store(Request $request)
 	{
 		$dto = PedidoDTO::fromRequest($request);
@@ -45,6 +86,27 @@ class PedidoController extends Controller
 			->setStatusCode(201);
 	}
 
+    /**
+     * @OA\Put(
+     *   path="/api/pedidos/{id}",
+     *   tags={"Pedidos"},
+     *   summary="Atualiza pedido (pendente)",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *   @OA\RequestBody(
+     *     required=true,
+     *     @OA\JsonContent(required={"items"},
+     *       @OA\Property(property="items", type="array",
+     *         @OA\Items(type="object",
+     *           @OA\Property(property="produto_id", type="integer"),
+     *           @OA\Property(property="quantidade", type="integer")
+     *         )
+     *       )
+     *     )
+     *   ),
+     *   @OA\Response(response=200, description="OK")
+     * )
+     */
 	public function update(Request $request, Pedido $pedido)
 	{
 		$pedido = $this->findAuthorized($request, $pedido->id);
@@ -62,6 +124,16 @@ class PedidoController extends Controller
 		return new PedidoResource($pedido);
 	}
 
+    /**
+     * @OA\Put(
+     *   path="/api/pedidos/{id}/cancel",
+     *   tags={"Pedidos"},
+     *   summary="Cancela pedido",
+     *   security={{"bearerAuth":{}}},
+     *   @OA\Parameter(name="id", in="path", required=true, @OA\Schema(type="integer")),
+     *   @OA\Response(response=200, description="OK")
+     * )
+     */
 	public function cancel(Request $request, $id)
 	{
 		$pedido = $this->findAuthorized($request, $id);
