@@ -1,0 +1,42 @@
+# Gerais / SO / IDE
+.DS_Store
+Thumbs.db
+*.log
+/.idea/
+/.vscode/
+/.fleet/
+/.zed/
+
+# Git
+.git-credentials
+
+# Dotenv
+.env
+.env.*
+
+# Laravel (subprojeto api-produtos-pedidos)
+/api-produtos-pedidos/vendor/
+/api-produtos-pedidos/storage/*.key
+/api-produtos-pedidos/storage/pail
+/api-produtos-pedidos/storage/framework/*.php
+/api-produtos-pedidos/storage/logs/*.log
+/api-produtos-pedidos/bootstrap/cache/*.php
+/api-produtos-pedidos/public/storage
+/api-produtos-pedidos/public/build
+/api-produtos-pedidos/public/hot
+/api-produtos-pedidos/.phpunit.result.cache
+/api-produtos-pedidos/.phpunit.cache/
+/api-produtos-pedidos/coverage/
+/api-produtos-pedidos/Homestead.json
+/api-produtos-pedidos/Homestead.yaml
+
+# Frontend Vue
+/frontend-vue/node_modules/
+/frontend-vue/dist/
+/frontend-vue/.vite/
+/frontend-vue/vite-dev.log
+/frontend-vue/.env
+/frontend-vue/.env.*
+
+# Docker artefatos locais (se houver)
+**/tmp/
