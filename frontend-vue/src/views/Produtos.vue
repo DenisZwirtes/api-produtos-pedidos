@@ -65,6 +65,35 @@
       </div>
     </div>
 
+    <!-- Pagination Controls -->
+    <div v-if="!loading && !error && lastPage > 1" class="mt-6 flex items-center justify-center space-x-2">
+      <button
+        class="px-3 py-1 rounded border text-sm disabled:opacity-50"
+        :disabled="currentPage === 1"
+        @click="goToPage(currentPage - 1)"
+      >
+        ‹ Anterior
+      </button>
+
+      <button
+        v-for="p in pagesToShow"
+        :key="p"
+        class="px-3 py-1 rounded border text-sm"
+        :class="p === currentPage ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700'"
+        @click="goToPage(p)"
+      >
+        {{ p }}
+      </button>
+
+      <button
+        class="px-3 py-1 rounded border text-sm disabled:opacity-50"
+        :disabled="currentPage === lastPage"
+        @click="goToPage(currentPage + 1)"
+      >
+        Próxima ›
+      </button>
+    </div>
+
     <!-- Create/Edit Modal -->
     <div v-if="showCreateModal || showEditModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
       <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
@@ -142,7 +171,7 @@
 </template>
 
 <script>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import api from '../services/api'
 
 export default {
@@ -151,6 +180,20 @@ export default {
     const produtos = ref([])
     const loading = ref(false)
     const error = ref('')
+    // pagination state
+    const currentPage = ref(1)
+    const lastPage = ref(1)
+    const perPage = ref(15)
+    const total = ref(0)
+
+    const pagesToShow = computed(() => {
+      const pages = []
+      const start = Math.max(1, currentPage.value - 2)
+      const end = Math.min(lastPage.value, start + 4)
+      for (let p = start; p <= end; p++) pages.push(p)
+      return pages
+    })
+
     const saving = ref(false)
     const showCreateModal = ref(false)
     const showEditModal = ref(false)
@@ -163,12 +206,17 @@ export default {
       categoria: ''
     })
 
-    const loadProdutos = async () => {
+    const loadProdutos = async (page = currentPage.value) => {
       loading.value = true
       error.value = ''
       try {
-        const response = await api.get('/produtos')
+        const response = await api.get('/produtos', { params: { page, per_page: perPage.value } })
         produtos.value = response.data.data
+        const meta = response.data.meta || {}
+        currentPage.value = meta.current_page || page
+        lastPage.value = meta.last_page || 1
+        perPage.value = meta.per_page || perPage.value
+        total.value = meta.total || produtos.value.length
       } catch (err) {
         error.value = 'Erro ao carregar produtos: ' + (err.response?.data?.message || err.message)
       } finally {
@@ -235,6 +283,11 @@ export default {
       }
     }
 
+    const goToPage = (p) => {
+      if (p < 1 || p > lastPage.value || p === currentPage.value) return
+      loadProdutos(p)
+    }
+
     onMounted(() => {
       loadProdutos()
     })
@@ -251,7 +304,14 @@ export default {
       saveProduto,
       editProduto,
       deleteProduto,
-      closeModal
+      closeModal,
+      // pagination exposed
+      currentPage,
+      lastPage,
+      perPage,
+      total,
+      pagesToShow,
+      goToPage
     }
   }
 }

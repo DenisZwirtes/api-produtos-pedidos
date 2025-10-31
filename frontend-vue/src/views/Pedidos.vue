@@ -103,6 +103,33 @@
           </div>
         </div>
       </div>
+
+      <!-- Pagination Controls -->
+      <div v-if="lastPage > 1" class="pt-2 flex items-center justify-center space-x-2">
+        <button
+          class="px-3 py-1 rounded border text-sm disabled:opacity-50"
+          :disabled="currentPage === 1"
+          @click="goToPage(currentPage - 1)"
+        >
+          ‹ Anterior
+        </button>
+        <button
+          v-for="p in pagesToShow"
+          :key="p"
+          class="px-3 py-1 rounded border text-sm"
+          :class="p === currentPage ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700'"
+          @click="goToPage(p)"
+        >
+          {{ p }}
+        </button>
+        <button
+          class="px-3 py-1 rounded border text-sm disabled:opacity-50"
+          :disabled="currentPage === lastPage"
+          @click="goToPage(currentPage + 1)"
+        >
+          Próxima ›
+        </button>
+      </div>
     </div>
 
     <!-- Create/Edit Order Modal -->
@@ -209,20 +236,39 @@ export default {
     const showEditModal = ref(false)
     const editingPedido = ref(null)
     
+    // pagination state
+    const currentPage = ref(1)
+    const lastPage = ref(1)
+    const perPage = ref(15)
+    const total = ref(0)
+
+    const pagesToShow = computed(() => {
+      const pages = []
+      const start = Math.max(1, currentPage.value - 2)
+      const end = Math.min(lastPage.value, start + 4)
+      for (let p = start; p <= end; p++) pages.push(p)
+      return pages
+    })
+
     const form = ref({
       items: [{ produto_id: '', quantidade: 1 }]
     })
 
     const isAuthenticated = computed(() => !!localStorage.getItem('token'))
 
-    const loadPedidos = async () => {
+    const loadPedidos = async (page = currentPage.value) => {
       if (!isAuthenticated.value) return
       
       loading.value = true
       error.value = ''
       try {
-        const response = await api.get('/pedidos')
+        const response = await api.get('/pedidos', { params: { page, per_page: perPage.value } })
         pedidos.value = response.data.data
+        const meta = response.data.meta || {}
+        currentPage.value = meta.current_page || page
+        lastPage.value = meta.last_page || 1
+        perPage.value = meta.per_page || perPage.value
+        total.value = meta.total || pedidos.value.length
       } catch (err) {
         error.value = 'Erro ao carregar pedidos: ' + (err.response?.data?.message || err.message)
       } finally {
@@ -252,7 +298,7 @@ export default {
           await api.post('/pedidos', data)
         }
 
-        await loadPedidos()
+        await loadPedidos(currentPage.value)
         closeModal()
       } catch (err) {
         error.value = 'Erro ao salvar pedido: ' + (err.response?.data?.message || err.message)
@@ -277,7 +323,7 @@ export default {
       
       try {
         await api.get(`/pedidos/${id}/cancel`)
-        await loadPedidos()
+        await loadPedidos(currentPage.value)
       } catch (err) {
         error.value = 'Erro ao cancelar pedido: ' + (err.response?.data?.message || err.message)
       }
@@ -345,6 +391,11 @@ export default {
       return produtos.value.filter(p => !selectedIds.has(p.id))
     }
 
+    const goToPage = (p) => {
+      if (p < 1 || p > lastPage.value || p === currentPage.value) return
+      loadPedidos(p)
+    }
+
     onMounted(() => {
       loadPedidos()
       loadProdutos()
@@ -371,7 +422,14 @@ export default {
       getStatusClass,
       getStatusLabel,
       formatDate,
-      getAvailableProducts
+      getAvailableProducts,
+      // pagination
+      currentPage,
+      lastPage,
+      perPage,
+      total,
+      pagesToShow,
+      goToPage
     }
   }
 }
